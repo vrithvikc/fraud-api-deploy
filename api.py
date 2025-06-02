@@ -2,7 +2,6 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import torch
 import torch.nn as nn
-import numpy as np
 
 app = Flask(__name__)
 CORS(app)
@@ -12,13 +11,14 @@ class FraudModel(nn.Module):
     def __init__(self):
         super().__init__()
         self.fc = nn.Sequential(
-            nn.Linear(29, 16),
+            nn.Linear(30, 16),
             nn.ReLU(),
             nn.Linear(16, 8),
             nn.ReLU(),
             nn.Linear(8, 1),
             nn.Sigmoid()
         )
+
     def forward(self, x):
         return self.fc(x)
 
@@ -34,20 +34,24 @@ def home():
 @app.route("/predict", methods=["POST"])
 def predict():
     try:
-        # Receive JSON with 'features' key containing 29 values
-        data = request.get_json(force=True)
-        features = np.array(data["features"], dtype=np.float32).reshape(1, -1)
+        data = request.get_json()
+        features = data.get("features")
 
-        # Predict
-        input_tensor = torch.tensor(features)
+        if not features or len(features) != 30:
+            return jsonify({"error": "Exactly 30 features are required."}), 400
+
+        input_tensor = torch.tensor(features, dtype=torch.float32).unsqueeze(0)
+
         with torch.no_grad():
-            output = model(input_tensor).item()
-        prediction = int(output > 0.5)
+            output = model(input_tensor)
+            confidence = output.item()
+            prediction = int(confidence > 0.5)
 
         return jsonify({
             "prediction": prediction,
-            "confidence": round(output, 4)
+            "confidence": round(confidence, 4)
         })
+
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
