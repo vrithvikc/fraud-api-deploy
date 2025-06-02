@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins="*")
 
 # Define your model
 class FraudModel(nn.Module):
