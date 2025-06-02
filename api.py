@@ -11,7 +11,7 @@ class FraudModel(nn.Module):
     def __init__(self):
         super().__init__()
         self.fc = nn.Sequential(
-            nn.Linear(30, 16),
+            nn.Linear(29, 16),
             nn.ReLU(),
             nn.Linear(16, 8),
             nn.ReLU(),
