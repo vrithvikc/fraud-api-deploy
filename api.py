@@ -3,10 +3,7 @@ from flask_cors import CORS
 import torch
 import torch.nn as nn
 
-app = Flask(__name__)
-CORS(app, origins="*")
-
-# Define your model
+# Define the model
 class FraudModel(nn.Module):
     def __init__(self):
         super().__init__()
@@ -18,9 +15,12 @@ class FraudModel(nn.Module):
             nn.Linear(8, 1),
             nn.Sigmoid()
         )
-
     def forward(self, x):
         return self.fc(x)
+
+# Initialize Flask app
+app = Flask(__name__)
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
 # Load model
 model = FraudModel()
@@ -29,23 +29,25 @@ model.eval()
 
 @app.route("/")
 def home():
-    return "Credit Card Fraud Detection API (via Federated Learning)"
+    return "✅ Credit Card Fraud Detection API is live."
 
 @app.route("/predict", methods=["POST"])
 def predict():
     try:
         data = request.get_json()
-        features = data.get("features")
+        if not data or "features" not in data:
+            return jsonify({"error": "Missing 'features' key in request body"}), 400
+        
+        features = data["features"]
 
-        if not features or len(features) != 30:
-            return jsonify({"error": "Exactly 30 features are required."}), 400
+        if not isinstance(features, list) or len(features) != 30:
+            return jsonify({"error": "Invalid input. 30 numerical features expected."}), 400
 
-        input_tensor = torch.tensor(features, dtype=torch.float32).unsqueeze(0)
-
+        input_tensor = torch.tensor(features).float().unsqueeze(0)
         with torch.no_grad():
             output = model(input_tensor)
             confidence = output.item()
-            prediction = int(confidence > 0.5)
+            prediction = 1 if confidence > 0.5 else 0
 
         return jsonify({
             "prediction": prediction,
@@ -53,7 +55,7 @@ def predict():
         })
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 400
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
