@@ -8,19 +8,20 @@ class FraudModel(nn.Module):
     def __init__(self):
         super().__init__()
         self.fc = nn.Sequential(
-            nn.Linear(29, 16),
+            nn.Linear(30, 16),
             nn.ReLU(),
             nn.Linear(16, 8),
             nn.ReLU(),
             nn.Linear(8, 1),
             nn.Sigmoid()
         )
+
     def forward(self, x):
         return self.fc(x)
 
 # Initialize Flask app
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+CORS(app, origins="*", allow_headers=["Content-Type"], methods=["GET", "POST", "OPTIONS"])
 
 # Load model
 model = FraudModel()
@@ -30,6 +31,11 @@ model.eval()
 @app.route("/")
 def home():
     return "✅ Credit Card Fraud Detection API is live."
+
+# Handle preflight requests manually
+@app.route("/predict", methods=["OPTIONS"])
+def handle_options():
+    return '', 204
 
 @app.route("/predict", methods=["POST"])
 def predict():
